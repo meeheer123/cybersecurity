@@ -1,166 +1,134 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Secure Login Demonstration</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Secure Registration</title>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen">
-    <div class="bg-white p-8 rounded-lg shadow-md w-96">
-        <h2 class="text-2xl font-bold mb-6 text-center">Secure Login</h2>
-        
-        <form id="loginForm" class="space-y-4">
-            <div>
-                <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
-                <input 
-                    type="text" 
-                    id="username" 
-                    name="username" 
-                    required 
-                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                >
-            </div>
-            
-            <div>
-                <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
-                <input 
-                    type="password" 
-                    id="password" 
-                    name="password" 
-                    required 
-                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                >
-            </div>
-            
-            <div id="securityNotices" class="text-sm text-yellow-600"></div>
-            
-            <button 
-                type="submit" 
-                class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            >
-                Login
-            </button>
-        </form>
-    </div>
+<body class="bg-gray-100 p-8">
+  <div class="max-w-xl mx-auto bg-white p-6 rounded-lg shadow-md">
+    <h1 class="text-2xl font-bold mb-6 text-center">Secure Registration</h1>
+    
+    <form id="secureForm" class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Name</label>
+        <input 
+          type="text" 
+          name="name" 
+          required 
+          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+          autocomplete="name"
+          id="name"
+        >
+      </div>
+      
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Email</label>
+        <input 
+          type="email" 
+          name="email" 
+          required 
+          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+          autocomplete="email"
+          id="email"
+        >
+      </div>
+      
+      <button 
+        type="submit" 
+        class="w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600"
+      >
+        Submit
+      </button>
+    </form>
+  </div>
 
-    <script>
-    // Secure Input Protection
-    class SecureInput {
-        constructor(inputElement) {
-            this.input = inputElement;
-            this._sensitiveValue = new WeakMap();
-            this.protectInput();
+  <script>
+    // Anti-debugging techniques
+    (function() {
+      // Prevent console access
+      Object.defineProperties(window, {
+        'console': {
+          get: function() {
+            throw new Error('Console access blocked for security reasons');
+          }
         }
+      });
 
-        protectInput() {
-            Object.defineProperty(this.input, 'value', {
-                get: () => {
-                    console.warn('Direct value access blocked');
-                    return '';
-                },
-                set: (newValue) => {
-                    this._sensitiveValue.set(this.input, this.encrypt(newValue));
+      // Disable developer tools
+      document.addEventListener('contextmenu', e => e.preventDefault());
+      document.addEventListener('keydown', function(e) {
+        // Block F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U
+        if (
+          e.keyCode === 123 || 
+          (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74)) ||
+          (e.ctrlKey && e.keyCode === 85)
+        ) {
+          e.preventDefault();
+          return false;
+        }
+      });
+
+      // Prevent DOM mutation
+      const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+          if (mutation.type === 'childList') {
+            mutation.addedNodes.forEach((node) => {
+              if (node.nodeType === Node.ELEMENT_NODE) {
+                // Remove any dynamically added hidden inputs
+                if (node.tagName === 'INPUT' && node.type === 'hidden') {
+                  node.remove();
                 }
+              }
             });
-        }
-
-        getValue() {
-            const encryptedValue = this._sensitiveValue.get(this.input);
-            return encryptedValue ? this.decrypt(encryptedValue) : '';
-        }
-
-        encrypt(value) {
-            // Simple XOR encryption (for demonstration)
-            return btoa(value.split('').map(char => 
-                String.fromCharCode(char.charCodeAt(0) ^ 0x55)
-            ).join(''));
-        }
-
-        decrypt(encodedValue) {
-            return atob(encodedValue).split('').map(char => 
-                String.fromCharCode(char.charCodeAt(0) ^ 0x55)
-            ).join('');
-        }
-    }
-
-    // Nonce Protection for Password
-    class NonceProtection {
-        static generateNonce() {
-            return Math.random().toString(36).substring(2, 15);
-        }
-
-        static injectNonce(passwordField) {
-            const originalPassword = passwordField.value;
-            const nonce = this.generateNonce();
-            
-            // Replace with nonce
-            passwordField.value = nonce;
-            
-            // Securely store original password
-            sessionStorage.setItem('__secure_password', btoa(originalPassword));
-
-            return nonce;
-        }
-
-        static retrieveOriginalPassword() {
-            const storedPassword = sessionStorage.getItem('__secure_password');
-            return storedPassword ? atob(storedPassword) : null;
-        }
-    }
-
-    // Extension and Input Security Monitor
-    class SecurityMonitor {
-        static detectExtensionTampering(inputElement) {
-            const observer = new MutationObserver((mutations) => {
-                mutations.forEach(mutation => {
-                    if (mutation.type === 'attributes') {
-                        console.warn('Potential element tampering detected');
-                        document.getElementById('securityNotices').textContent = 
-                            'Warning: Suspicious activity detected!';
-                    }
-                });
-            });
-
-            observer.observe(inputElement, { 
-                attributes: true, 
-                attributeFilter: ['type', 'class'] 
-            });
-        }
-    }
-
-    document.addEventListener('DOMContentLoaded', () => {
-        const usernameInput = document.getElementById('username');
-        const passwordInput = document.getElementById('password');
-        const loginForm = document.getElementById('loginForm');
-
-        // Secure username input
-        const secureUsername = new SecureInput(usernameInput);
-
-        // Secure password input with nonce
-        const securePassword = new SecureInput(passwordInput);
-
-        // Monitor for suspicious activities
-        SecurityMonitor.detectExtensionTampering(passwordInput);
-
-        loginForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-
-            // Inject nonce for password
-            const passwordNonce = NonceProtection.injectNonce(passwordInput);
-
-            // Simulate server-side validation
-            setTimeout(() => {
-                const originalPassword = NonceProtection.retrieveOriginalPassword();
-                
-                if (originalPassword) {
-                    console.log('Login attempted with secure credentials');
-                    alert('Login simulation successful with enhanced security!');
-                } else {
-                    alert('Security validation failed');
-                }
-            }, 500);
+          }
         });
+      });
+
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true
+      });
+    })();
+
+    // Form submission handler with client-side validation
+    document.getElementById('secureForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      const name = e.target.name.value;
+      const email = e.target.email.value;
+
+      // Simulate secure transmission (replace with actual backend logic)
+      const encryptedData = btoa(JSON.stringify({
+        name: name,
+        email: email,
+        // Prevent additional data injection
+        additionalData: null
+      }));
+
+      console.log = function() {}; // Override console.log
+      console.warn = function() {}; // Override console.warn
+      console.error = function() {}; // Override console.error
+
+      // Simulated secure submission
+      fetch('/submit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ data: encryptedData })
+      });
     });
-    </script>
+
+    // Prevent script injection
+    window.eval = function() {
+      throw new Error('Script evaluation is not allowed');
+    };
+
+    // Prevent prototype pollution
+    Object.freeze(Object.prototype);
+    Object.freeze(Array.prototype);
+  </script>
 </body>
 </html>
